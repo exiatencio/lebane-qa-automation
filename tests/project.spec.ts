@@ -5,6 +5,8 @@ test('crear proyecto con lista de precios inicial', async ({ page }) => {
   const projectName = `QA-Automation-${timestamp}`;
   const businessName = `QA-Razon-Social-${timestamp}`;
 
+  console.log(`Proyecto creado por automation: ${projectName}`);
+
   await page.goto('/');
 
   await page.getByRole('button', { name: 'Agregar proyecto' }).click();
@@ -81,11 +83,49 @@ await page
   .click();
 
   // Razón Social
+
 const razonSocial = page.getByPlaceholder('Escribí para buscar o crear');
 
 await razonSocial.fill(businessName);
 
 await page
-  .getByRole('option', { name: `Crear nueva razón social "${businessName}"` })
+  .getByRole('option', {
+    name: new RegExp(`Crear nueva razón social "${businessName}"`)
+  })
   .click();
+
+  // Validar que el nombre de la razón social se complete automáticamente
+const businessNameInput = page.locator(
+  '[data-cy="new-renderer-field-nombreRazonSocial"]'
+);
+
+await expect(businessNameInput).toHaveValue(businessName);
+
+// Seleccionar tipo de documento
+const documentType = page.locator(
+  '[data-cy="new-renderer-field-documentoDeIdentidadTipo"]'
+);
+
+await expect(documentType).toBeEnabled();
+
+await documentType.click();
+
+await page
+  .getByRole('option', { name: 'CUIT' })
+  .click();
+
+// Completar número de documento
+await page
+  .locator('[data-cy="new-renderer-field-documentoDeIdentidadNumero"]')
+  .fill('20123456789');
+
+// Validar que el formulario quede listo para registrarse
+const registerButton = page.getByRole('button', { name: 'Registrar' });
+
+await expect(registerButton).toBeEnabled();
+
+// Registrar el proyecto
+await registerButton.click();
+
+await expect(page).toHaveURL(/\/proyecto\/general/);
 });
