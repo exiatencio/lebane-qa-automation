@@ -1,0 +1,27 @@
+{
+  "name": "lebane-qa-automation",
+  "version": "1.0.0",
+  "description": "QA Automation challenge for Lebane using Playwright and TypeScript.",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:login": "playwright test tests/login.spec.ts --headed",
+    "test:project": "playwright test tests/project.spec.ts --headed",
+    "report": "playwright show-report"
+  },
+  "keywords": [
+    "qa",
+    "automation",
+    "playwright",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.3",
+    "dotenv": "^18.0.5"
+  }
+}
