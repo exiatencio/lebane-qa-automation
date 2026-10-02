@@ -1,18 +1,136 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+async function selectOption(
+  page: Page,
+  field: string,
+  option: string
+) {
+  const select = page.locator(`[data-cy="${field}"]`);
+
+  await expect(select).toBeVisible();
+  await expect(select).toBeEnabled();
+
+  await select.click();
+
+  const optionToSelect = page.getByRole('option', {
+    name: option,
+    exact: true
+  });
+
+  await expect(optionToSelect).toBeVisible();
+  await optionToSelect.click();
+
+  await expect(select).toHaveValue(option);
+}
 
 test('configurar stock y crear lista de precios inicial', async ({ page }) => {
-  const projectName = 'QA-Automation-1790891226568';
-  const initialPriceListName = 'Lista precios 01/10/2026';
+  const timestamp = Date.now();
+  const projectName = `QA-Stock-${timestamp}`;
+  const businessName = 'QA-Razon-Social-1790891226568';
 
   await page.goto('/');
 
-  // Abrir el proyecto de prueba
+  // Abrir formulario de nuevo proyecto
   await page
-    .getByText(projectName, { exact: true })
+    .getByRole('button', { name: 'Agregar proyecto' })
     .click();
 
-  // Validar acceso al proyecto
-  await expect(page).toHaveURL(/\/proyecto\/\d+$/);
+  // Completar datos del proyecto
+  await page
+    .getByRole('textbox', { name: 'Nombre' })
+    .fill(projectName);
+
+  await selectOption(
+    page,
+    'new-renderer-field-moneda',
+    'USD'
+  );
+
+  await selectOption(
+    page,
+    'new-renderer-field-pais',
+    'Argentina'
+  );
+
+  await selectOption(
+    page,
+    'new-renderer-field-estado',
+    'Capital Federal'
+  );
+
+  await selectOption(
+    page,
+    'new-renderer-field-ciudad',
+    'Agronomia'
+  );
+
+  await page
+    .getByRole('textbox', { name: 'Dirección' })
+    .fill('Av. QA Automation');
+
+  await page
+    .locator('input[name="numeroPuerta"]')
+    .fill('1234');
+
+  const endDate = page.locator(
+    '[data-cy="new-renderer-field-fechaFin"]'
+  );
+
+  await endDate.fill('30/09/2032');
+  await endDate.press('Tab');
+
+  await expect(endDate).toHaveValue('30/09/2032');
+
+  await selectOption(
+    page,
+    'new-renderer-field-tipoConstruccion',
+    'Aeropuerto'
+  );
+
+  await selectOption(
+    page,
+    'new-renderer-field-modalidadAjuste',
+    'Disponible al vencimiento'
+  );
+
+  // Seleccionar razón social
+  const razonSocial = page.getByPlaceholder(
+    'Escribí para buscar o crear'
+  );
+
+  await expect(razonSocial).toBeEnabled();
+  await razonSocial.fill(businessName);
+
+  const existingBusiness = page.getByRole('option', {
+    name: businessName,
+    exact: true
+  });
+
+  await expect(existingBusiness).toBeVisible({
+    timeout: 10000
+  });
+
+  await existingBusiness.click();
+
+  await expect(razonSocial).toHaveValue(
+    businessName
+  );
+
+  // Registrar el proyecto
+  const registerButton = page.getByRole('button', {
+    name: 'Registrar'
+  });
+
+  await expect(registerButton).toBeEnabled({
+    timeout: 10000
+  });
+
+  await registerButton.click();
+
+  await expect(page).toHaveURL(
+    /\/proyecto\/\d+$/,
+    { timeout: 30000 }
+  );
 
   const projectUrl = page.url();
 
@@ -25,48 +143,47 @@ test('configurar stock y crear lista de precios inicial', async ({ page }) => {
     .locator('..')
     .locator('..');
 
-  if (await stockSection.count() > 0) {
-    await expect(stockSection).toBeVisible();
+  await expect(stockSection).toBeVisible();
 
-    await stockSection
-      .getByRole('button', { name: 'Agregar' })
-      .click();
+  await stockSection
+    .getByRole('button', { name: 'Agregar' })
+    .click();
 
-    // Completar configuración obligatoria del stock
-    await page
-      .locator('input[name="precioListaMetroCuadrado"]')
-      .fill('1000');
+  // Completar configuración obligatoria del stock
+  await page
+    .locator('input[name="precioListaMetroCuadrado"]')
+    .fill('1000');
 
-    await page
-      .locator('input[name="pisos"]')
-      .fill('2');
+  await page
+    .locator('input[name="pisos"]')
+    .fill('2');
 
-    // Seleccionar tipología
-    const typologies = page.locator(
-      '[data-cy="new-renderer-field-tipologias"]'
-    );
+  // Seleccionar tipología
+  const typologies = page.locator(
+    '[data-cy="new-renderer-field-tipologias"]'
+  );
 
-    await typologies.click();
+  await expect(typologies).toBeVisible();
+  await typologies.click();
 
-    await page
-      .getByRole('option', {
-        name: 'Dos ambientes',
-        exact: true
-      })
-      .click();
+  await page
+    .getByRole('option', {
+      name: 'Dos ambientes',
+      exact: true
+    })
+    .click();
 
-    await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
 
-    // Unidades por piso
-    await page
-      .locator('input[name="unidadesPorPiso"]')
-      .fill('2');
+  // Completar unidades por piso
+  await page
+    .locator('input[name="unidadesPorPiso"]')
+    .fill('2');
 
-    // Guardar configuración
-    await page
-      .getByRole('button', { name: 'Guardar' })
-      .click();
-  }
+  // Guardar configuración
+  await page
+    .getByRole('button', { name: 'Guardar' })
+    .click();
 
   // Abrir sección de unidades
   await page.goto(`${projectUrl}/areas`);
@@ -84,43 +201,22 @@ test('configurar stock y crear lista de precios inicial', async ({ page }) => {
   await unitsTab.click();
 
   // Validar lista de precios inicial
-  const priceListButton = page.getByRole('button', {
-    name: /^Lista precios /
-  });
+  const priceListButton = page
+    .locator('main button:visible')
+    .filter({ hasText: /^Lista precios / });
 
+  await expect(priceListButton).toHaveCount(1);
   await expect(priceListButton).toBeVisible();
-
-  // Abrir selector de listas de precios
-  await priceListButton.click();
-
-  // Identificar el menú de listas
-  const priceListMenu = page.getByRole('menu');
-
-  // Seleccionar la lista de precios inicial
-  await priceListMenu
-    .getByText(initialPriceListName, { exact: true })
-    .click();
-
-  // Cerrar el menú de listas
-  const menuBackdrop = page.locator(
-    '.MuiMenu-root .MuiBackdrop-root'
-  );
-
-  if (await menuBackdrop.isVisible()) {
-    await menuBackdrop.click({
-      position: { x: 5, y: 5 }
-    });
-  }
-
-  await expect(menuBackdrop).toBeHidden({
-    timeout: 10000
-  });
 
   // Validar unidades generadas por el stock
   for (const unitNumber of ['101', '102', '201', '202']) {
-    await expect(
-      page.getByText(unitNumber, { exact: true })
-    ).toBeVisible({
+    const unitCell = page
+      .locator('main td')
+      .filter({
+        hasText: new RegExp(`^\\s*${unitNumber}\\s*$`)
+      });
+
+    await expect(unitCell).toBeVisible({
       timeout: 15000
     });
   }

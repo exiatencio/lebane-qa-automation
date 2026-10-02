@@ -27,6 +27,17 @@ test('eliminar unidad de una lista de precios', async ({ page }) => {
   await expect(unitsTab).toBeVisible();
   await unitsTab.click();
 
+  const priceListButton = page
+    .locator('main button:visible')
+    .filter({ hasText: /^Lista precios / });
+
+  await expect(priceListButton).toHaveCount(1);
+  await expect(priceListButton).toBeVisible();
+
+  const previousPriceListName = (
+    await priceListButton.innerText()
+  ).trim();
+
   // Abrir menú de templates
   await page
     .getByText('Templates', { exact: true })
@@ -34,7 +45,10 @@ test('eliminar unidad de una lista de precios', async ({ page }) => {
 
   // Abrir modal de carga
   await page
-    .getByText('Cargar Template de Unidades', { exact: true })
+    .getByText(
+      'Cargar Template de Unidades',
+      { exact: true }
+    )
     .click();
 
   const uploadDialog = page.getByRole('dialog');
@@ -72,34 +86,36 @@ test('eliminar unidad de una lista de precios', async ({ page }) => {
 
   await expect(reportDialog).toBeVisible();
 
-  // Cerrar reporte para continuar con la carga
   await reportDialog
     .getByRole('button', { name: 'Cerrar' })
     .click();
 
   // Identificar la nueva lista de precios
-  const priceListButton = page.getByRole('button', {
-    name: /^Lista precios /
-  });
-
   await expect(priceListButton).toBeVisible();
 
-  const newPriceListName = (
-    await priceListButton.textContent()
-  )?.trim();
+  await expect(priceListButton).not.toHaveText(
+    previousPriceListName,
+    {
+      timeout: 30000
+    }
+  );
 
-  expect(newPriceListName).toBeTruthy();
+  const newPriceListName = (
+    await priceListButton.innerText()
+  ).trim();
 
   // Identificar la unidad cargada por template
-  const unitNumberCell = page.getByText(unitNumber, {
-    exact: true
-  });
+  const unitCell = page
+    .locator('main td')
+    .filter({
+      hasText: new RegExp(`^\\s*${unitNumber}\\s*$`)
+    });
 
-  await expect(unitNumberCell).toBeVisible({
+  await expect(unitCell).toBeVisible({
     timeout: 30000
   });
 
-  const unitRow = unitNumberCell.locator('xpath=ancestor::tr');
+  const unitRow = unitCell.locator('..');
 
   // Eliminar unidad desde la lista
   await unitRow
@@ -127,28 +143,32 @@ test('eliminar unidad de una lista de precios', async ({ page }) => {
     timeout: 15000
   });
 
-  // Validar que la unidad fue eliminada
-  await expect(
-    page.getByText(unitNumber, { exact: true })
-  ).toHaveCount(0, {
+  // Validar que la unidad desapareció de la grilla
+  await expect(unitCell).toHaveCount(0, {
     timeout: 15000
   });
 
-  // Abrir selector de listas de precios
-  await page
-    .getByRole('button', {
-      name: /Lista precios/,
-    })
-    .click();
+  // Validar que la lista vacía fue eliminada
+  await expect(priceListButton).toBeVisible();
+  await priceListButton.click();
 
-  // Identificar el menú actualizado de listas
   const updatedPriceListMenu = page.getByRole('menu');
 
-  // Validar que la lista vacía fue eliminada
+  await expect(updatedPriceListMenu).toBeVisible();
+
   await expect(
     updatedPriceListMenu.getByText(
-      newPriceListName!,
+      previousPriceListName,
+      { exact: true }
+    )
+  ).toBeVisible();
+
+  await expect(
+    updatedPriceListMenu.getByText(
+      newPriceListName,
       { exact: true }
     )
   ).toHaveCount(0);
+
+  await page.keyboard.press('Escape');
 });

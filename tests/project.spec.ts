@@ -24,7 +24,7 @@ async function selectOption(
   await expect(select).toHaveValue(option);
 }
 
-test('crear proyecto con lista de precios inicial', async ({ page }) => {
+test('crear proyecto con configuración inicial', async ({ page }) => {
   const timestamp = Date.now();
   const projectName = `QA-Automation-${timestamp}`;
   const businessName = 'QA-Razon-Social-1790891226568';
