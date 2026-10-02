@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test('crear unidad manualmente', async ({ page }) => {
+test('modificar precio de una unidad en una lista de precios', async ({ page }) => {
   const projectName = 'QA-Automation-1790891226568';
-  const unitNumber = `9${Date.now().toString().slice(-5)}`;
+  const unitNumber = '101';
 
   await page.goto('/');
 
@@ -26,26 +26,25 @@ test('crear unidad manualmente', async ({ page }) => {
   await expect(unitsTab).toBeVisible();
   await unitsTab.click();
 
-  // Agregar nueva unidad manualmente
-  await page
-    .getByRole('button', { name: 'Agregar fila', exact: true })
-    .click();
-
-  // Completar número de unidad
-  const unitInput = page.getByPlaceholder('Valor...');
-
-  await unitInput.fill(unitNumber);
-  await unitInput.press('Enter');
-
-  // Identificar la fila creada
+  // Identificar unidad existente
   const unitRow = page
     .getByRole('row')
     .filter({ hasText: unitNumber });
 
   await expect(unitRow).toBeVisible();
 
-  // Validar que la unidad quedó persistida
+  // Editar precio de la unidad
+  await unitRow
+    .locator('td[data-index="12"]')
+    .click();
+
+  const priceInput = page.getByPlaceholder('Valor...');
+
+  await priceInput.fill('50000');
+  await priceInput.press('Enter');
+
+  // Validar que el precio fue modificado en la lista
   await expect(
-    unitRow.getByText(unitNumber, { exact: true })
-  ).toBeVisible();
+    unitRow.locator('td[data-index="12"]')
+  ).not.toHaveText('0,00');
 });

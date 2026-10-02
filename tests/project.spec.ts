@@ -1,55 +1,75 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+async function selectOption(
+  page: Page,
+  field: string,
+  option: string
+) {
+  const select = page.locator(`[data-cy="${field}"]`);
+
+  await expect(select).toBeVisible();
+  await expect(select).toBeEnabled();
+
+  await select.click();
+
+  const optionToSelect = page.getByRole('option', {
+    name: option,
+    exact: true
+  });
+
+  await expect(optionToSelect).toBeVisible();
+  await optionToSelect.click();
+
+  // Validar que la selección quedó aplicada
+  await expect(select).toHaveValue(option);
+}
 
 test('crear proyecto con lista de precios inicial', async ({ page }) => {
   const timestamp = Date.now();
   const projectName = `QA-Automation-${timestamp}`;
-  const businessName = `QA-Razon-Social-${timestamp}`;
+  const businessName = 'QA-Razon-Social-1790891226568';
 
   console.log(`Proyecto creado por automation: ${projectName}`);
 
   await page.goto('/');
 
-  await page.getByRole('button', { name: 'Agregar proyecto' }).click();
+  // Abrir formulario de nuevo proyecto
+  await page
+    .getByRole('button', { name: 'Agregar proyecto' })
+    .click();
 
+  // Completar nombre del proyecto
   await page
     .getByRole('textbox', { name: 'Nombre' })
     .fill(projectName);
 
- // Seleccionar moneda
-await page
-  .locator('[data-cy="new-renderer-field-moneda"]')
-  .click();
+  // Seleccionar moneda
+  await selectOption(
+    page,
+    'new-renderer-field-moneda',
+    'USD'
+  );
 
-await page
-  .getByRole('option', { name: 'USD' })
-  .click();
+  // Seleccionar país
+  await selectOption(
+    page,
+    'new-renderer-field-pais',
+    'Argentina'
+  );
 
-// Seleccionar país
-await page
-  .locator('[data-cy="new-renderer-field-pais"]')
-  .click();
+  // Seleccionar estado/provincia
+  await selectOption(
+    page,
+    'new-renderer-field-estado',
+    'Capital Federal'
+  );
 
-await page
-  .getByRole('option', { name: 'Argentina' })
-  .click();
-
-// Seleccionar estado/provincia
-await page
-  .locator('[data-cy="new-renderer-field-estado"]')
-  .click();
-
-await page
-  .getByRole('option', { name: 'Capital Federal' })
-  .click();
-
-// Seleccionar ciudad
-await page
-  .locator('[data-cy="new-renderer-field-ciudad"]')
-  .click();
-
-await page
-  .getByRole('option', { name: 'Agronomia' })
-  .click();
+  // Seleccionar ciudad
+  await selectOption(
+    page,
+    'new-renderer-field-ciudad',
+    'Agronomia'
+  );
 
   await page
     .getByRole('textbox', { name: 'Dirección' })
@@ -59,73 +79,79 @@ await page
     .locator('input[name="numeroPuerta"]')
     .fill('1234');
 
-    // Fecha de finalización
-  await page
-  .locator('[data-cy="new-renderer-field-fechaFin"]')
-  .fill('30/09/2032');
+  // Fecha de finalización
+  const endDate = page.locator(
+    '[data-cy="new-renderer-field-fechaFin"]'
+  );
 
-// Tipo de construcción
-  await page
-  .locator('[data-cy="new-renderer-field-tipoConstruccion"]')
-  .click();
+  await endDate.fill('30/09/2032');
+  await endDate.press('Tab');
 
-  await page
-  .getByRole('option', { name: 'Aeropuerto' })
-  .click();
+  await expect(endDate).toHaveValue('30/09/2032');
 
-// Modalidad de ajuste
-  await page
-  .locator('[data-cy="new-renderer-field-modalidadAjuste"]')
-  .click();
+  // Tipo de construcción
+  await selectOption(
+    page,
+    'new-renderer-field-tipoConstruccion',
+    'Aeropuerto'
+  );
 
-  await page
-  .getByRole('option', { name: 'Disponible al vencimiento' })
-  .click();
+  // Modalidad de ajuste
+  await selectOption(
+    page,
+    'new-renderer-field-modalidadAjuste',
+    'Disponible al vencimiento'
+  );
 
   // Razón Social
+  const razonSocial = page.getByPlaceholder(
+    'Escribí para buscar o crear'
+  );
 
-const razonSocial = page.getByPlaceholder('Escribí para buscar o crear');
+  await expect(razonSocial).toBeEnabled();
+  await razonSocial.fill(businessName);
 
-await razonSocial.fill(businessName);
+  // Seleccionar una razón social existente
+  const existingBusiness = page.getByRole('option', {
+    name: businessName,
+    exact: true
+  });
 
-await page
-  .getByRole('option', {
-    name: new RegExp(`Crear nueva razón social "${businessName}"`)
-  })
-  .click();
+  await expect(existingBusiness).toBeVisible({
+    timeout: 10000
+  });
 
-  // Validar que el nombre de la razón social se complete automáticamente
-const businessNameInput = page.locator(
-  '[data-cy="new-renderer-field-nombreRazonSocial"]'
-);
+  await existingBusiness.click();
 
-await expect(businessNameInput).toHaveValue(businessName);
+  // Validar que la razón social quedó seleccionada
+  await expect(razonSocial).toHaveValue(
+    businessName
+  );
 
-// Seleccionar tipo de documento
-const documentType = page.locator(
-  '[data-cy="new-renderer-field-documentoDeIdentidadTipo"]'
-);
+  // Validar que el formulario quede listo para registrarse
+  const registerButton = page.getByRole('button', {
+    name: 'Registrar'
+  });
 
-await expect(documentType).toBeEnabled();
+  await expect(registerButton).toBeEnabled({
+    timeout: 10000
+  });
 
-await documentType.click();
+  // Registrar el proyecto
+  await registerButton.click();
 
-await page
-  .getByRole('option', { name: 'CUIT' })
-  .click();
+  // Validar acceso al proyecto creado
+  await expect(page).toHaveURL(
+    /\/proyecto\/\d+$/,
+    {
+      timeout: 30000
+    }
+  );
 
-// Completar número de documento
-await page
-  .locator('[data-cy="new-renderer-field-documentoDeIdentidadNumero"]')
-  .fill('20123456789');
-
-// Validar que el formulario quede listo para registrarse
-const registerButton = page.getByRole('button', { name: 'Registrar' });
-
-await expect(registerButton).toBeEnabled();
-
-// Registrar el proyecto
-await registerButton.click();
-
-await expect(page).toHaveURL(/\/proyecto\/general/);
+  // Validar onboarding del proyecto
+  await expect(
+    page.getByText('Comienza a operar tu proyecto', {
+      exact: true
+    })
+  ).toBeVisible();
 });
