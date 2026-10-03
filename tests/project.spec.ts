@@ -10,14 +10,26 @@ async function selectOption(
   await expect(select).toBeVisible();
   await expect(select).toBeEnabled();
 
-  await select.click();
+  const fieldContainer = select.locator('..');
+
+  const openButton = fieldContainer.getByRole('button', {
+    name: 'Abierto'
+  });
+
+  await expect(openButton).toBeVisible();
+  await expect(openButton).toBeEnabled();
+
+  await openButton.click();
 
   const optionToSelect = page.getByRole('option', {
     name: option,
     exact: true
   });
 
-  await expect(optionToSelect).toBeVisible();
+  await expect(optionToSelect).toBeVisible({
+    timeout: 10000
+  });
+
   await optionToSelect.click();
 
   // Validar que la selección quedó aplicada
@@ -84,10 +96,21 @@ test('crear proyecto con configuración inicial', async ({ page }) => {
     '[data-cy="new-renderer-field-fechaFin"]'
   );
 
-  await endDate.fill('30/09/2032');
+  await expect(endDate).toBeVisible();
+  await expect(endDate).toBeEnabled();
+
+  await endDate.click();
+
+  await endDate.pressSequentially(
+    '30/09/2032',
+    { delay: 50 }
+  );
+
   await endDate.press('Tab');
 
-  await expect(endDate).toHaveValue('30/09/2032');
+  await expect(endDate).toHaveValue(
+    '30/09/2032'
+  );
 
   // Tipo de construcción
   await selectOption(

@@ -26,7 +26,6 @@ test('modificar precio de una unidad en una lista de precios', async ({ page }) 
     await expect(unitsTab).toBeVisible();
     await unitsTab.click();
 
-    // Seleccionar lista de precios inicial
     await expect(priceListButton).toHaveCount(1);
     await expect(priceListButton).toBeVisible();
 
@@ -34,6 +33,7 @@ test('modificar precio de una unidad en una lista de precios', async ({ page }) 
       await priceListButton.innerText()
     ).trim();
 
+    // Cambiar de lista únicamente si la lista inicial no está activa
     if (activePriceList !== initialPriceListName) {
       await priceListButton.click();
 
@@ -44,6 +44,9 @@ test('modificar precio de una unidad en una lista de precios', async ({ page }) 
       await priceListMenu
         .getByText(initialPriceListName, { exact: true })
         .click();
+
+      // Esperar que el menú y su backdrop terminen de cerrarse
+      await expect(priceListMenu).toBeHidden();
     }
 
     // Validar lista de precios seleccionada
@@ -51,8 +54,20 @@ test('modificar precio de una unidad en una lista de precios', async ({ page }) 
       initialPriceListName
     );
 
-    // Identificar unidad existente
-    await expect(unitRow).toHaveCount(1);
+    // Buscar la unidad dentro de la grilla
+    const searchInput = page.getByPlaceholder(
+      'Buscar por...',
+      { exact: true }
+    );
+
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill(unitNumber);
+
+    // Validar que la búsqueda devuelve únicamente la unidad esperada
+    await expect(unitRow).toHaveCount(1, {
+      timeout: 15000
+    });
+
     await expect(priceCell).toBeVisible();
   }
 

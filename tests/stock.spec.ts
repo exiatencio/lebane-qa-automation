@@ -10,14 +10,26 @@ async function selectOption(
   await expect(select).toBeVisible();
   await expect(select).toBeEnabled();
 
-  await select.click();
+  const fieldContainer = select.locator('..');
+
+  const openButton = fieldContainer.getByRole('button', {
+    name: 'Abierto'
+  });
+
+  await expect(openButton).toBeVisible();
+  await expect(openButton).toBeEnabled();
+
+  await openButton.click();
 
   const optionToSelect = page.getByRole('option', {
     name: option,
     exact: true
   });
 
-  await expect(optionToSelect).toBeVisible();
+  await expect(optionToSelect).toBeVisible({
+    timeout: 10000
+  });
+
   await optionToSelect.click();
 
   await expect(select).toHaveValue(option);
@@ -76,10 +88,22 @@ test('configurar stock y crear lista de precios inicial', async ({ page }) => {
     '[data-cy="new-renderer-field-fechaFin"]'
   );
 
-  await endDate.fill('30/09/2032');
+  await expect(endDate).toBeVisible();
+  await expect(endDate).toBeEnabled();
+
+  // Ingresar la fecha simulando escritura real del usuario
+  await endDate.click();
+
+  await endDate.pressSequentially(
+    '30/09/2032',
+    { delay: 50 }
+  );
+
   await endDate.press('Tab');
 
-  await expect(endDate).toHaveValue('30/09/2032');
+  await expect(endDate).toHaveValue(
+    '30/09/2032'
+  );
 
   await selectOption(
     page,
@@ -180,12 +204,13 @@ test('configurar stock y crear lista de precios inicial', async ({ page }) => {
     .locator('input[name="unidadesPorPiso"]')
     .fill('2');
 
-  // Guardar configuración
   await page
-    .getByRole('button', { name: 'Guardar' })
+    .getByRole('button', {
+      name: 'Guardar',
+      exact: true
+    })
     .click();
 
-  // Abrir sección de unidades
   await page.goto(`${projectUrl}/areas`);
 
   await expect(page).toHaveURL(
@@ -200,24 +225,31 @@ test('configurar stock y crear lista de precios inicial', async ({ page }) => {
   await expect(unitsTab).toBeVisible();
   await unitsTab.click();
 
-  // Validar lista de precios inicial
   const priceListButton = page
     .locator('main button:visible')
-    .filter({ hasText: /^Lista precios / });
+    .filter({
+      hasText: /^Lista precios /
+    });
 
   await expect(priceListButton).toHaveCount(1);
   await expect(priceListButton).toBeVisible();
 
-  // Validar unidades generadas por el stock
-  for (const unitNumber of ['101', '102', '201', '202']) {
+  const expectedUnits = [
+    '101',
+    '102',
+    '201',
+    '202'
+  ];
+
+  for (const unitNumber of expectedUnits) {
     const unitCell = page
       .locator('main td')
       .filter({
-        hasText: new RegExp(`^\\s*${unitNumber}\\s*$`)
+        hasText: new RegExp(
+          `^\\s*${unitNumber}\\s*$`
+        )
       });
 
-    await expect(unitCell).toBeVisible({
-      timeout: 15000
-    });
+    await expect(unitCell).toHaveCount(1);
   }
 });
